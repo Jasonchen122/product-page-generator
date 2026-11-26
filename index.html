@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>商品頁程式碼產生器</title>
+<meta name="theme-color" content="#f5c451">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="商品頁產生器">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<style>
+/* LAYOUT: 寬螢幕左右兩欄（左填空、右預覽＋程式碼），手機上下堆疊 */
+:root{color-scheme:light dark;--bg:light-dark(#fbf8f1,#1b1915);--card:light-dark(#fff,#262320);--ink:light-dark(#2b2824,#efe9de);--mute:light-dark(#77706a,#a9a196);--line:light-dark(#e8e1d3,#3b3631);--field:light-dark(#fffdf8,#1f1d1a);--soft:light-dark(#f4efe4,#171513);--yel:#f5c451;--red:#e74c3c;--okc:light-dark(#2e8b57,#6fcf97)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 "Noto Sans TC","微軟正黑體","Microsoft JhengHei",sans-serif;overflow-x:clip}
+header{background:var(--yel);color:#2b2416;padding:calc(18px + env(safe-area-inset-top,0px)) max(4vw,16px) 18px}
+header h1{margin:0;font-size:clamp(22px,3vw,30px);line-height:1.15}
+header p{margin:4px 0 0;font-size:14px}
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;padding:20px max(4vw,16px) 48px;max-width:1400px;margin:0 auto}
+@media(max-width:900px){main{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+.card h2{margin:0 0 4px;font-size:18px}
+.hint{font-size:13px;color:var(--mute);margin:0 0 10px}
+label{display:block;font-size:14px;font-weight:700;margin:12px 0 4px}
+input[type=text],select,textarea{width:100%;font:16px/1.5 inherit;font-family:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--field);color:var(--ink)}
+textarea{min-height:120px;resize:vertical}
+input:focus,select:focus,textarea:focus,button:focus-visible,summary:focus-visible{outline:2px solid var(--red);outline-offset:1px}
+.row{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-top:10px;font-size:14px}
+.row label{display:inline;margin:0;font-weight:400}
+.row2{display:flex;gap:8px;margin-top:8px}
+.row2>input,.row2>select{flex:1}
+button{min-height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:15px;cursor:pointer;white-space:nowrap}
+button.pri{background:var(--red);border-color:var(--red);color:#fff;font-weight:700}
+button:disabled{opacity:.5;cursor:default}
+button.danger{border-color:var(--red);color:var(--red)}
+.out{position:sticky;top:12px;align-self:start}
+@media(max-width:900px){.out{position:static}}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tabs button[aria-selected=true]{background:var(--yel);border-color:var(--yel);color:#2b2416;font-weight:700}
+.prev{background:#fff;color:#555;border:1px solid var(--line);border-radius:8px;padding:16px 18px;max-height:56vh;overflow:auto;line-height:2;resize:horizontal}
+.prev a{color:#0563c1}
+pre{background:var(--soft);border-radius:8px;padding:12px;max-height:30vh;overflow:auto;font-size:12.5px;white-space:pre-wrap;word-break:break-all;margin:10px 0}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ok{font-size:14px;color:var(--okc)}
+.warn{font-size:13px;color:var(--red);margin:6px 0 0}
+code{background:var(--soft);padding:1px 5px;border-radius:4px}
+details.card>summary{cursor:pointer;font-size:18px;font-weight:700;list-style-position:inside}
+details.card[open]>summary{margin-bottom:6px}
+.sub{font-size:15px;margin:18px 0 0;padding-top:12px;border-top:1px dashed var(--line)}
+.colors{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px 14px;margin-top:6px}
+.colors label{display:flex;align-items:center;gap:8px;margin:0;font-weight:400;font-size:14px}
+.picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:4px;margin-top:8px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--soft)}
+.picker h4{grid-column:1/-1;margin:6px 0 0;font-size:13px;color:var(--mute);font-weight:700}
+.picker button{min-height:44px;padding:0;font-size:24px;background:var(--card)}
+input[type=color]{width:44px;height:34px;padding:2px;border:1px solid var(--line);border-radius:6px;background:var(--field);flex:none}
+</style>
+</head>
+<body>
+<header>
+<h1>商品頁程式碼產生器</h1>
+<p>填好左邊的內容，右邊會即時產生程式碼，複製後貼到商城後台的「原始碼」模式。</p>
+</header>
+<main>
+<section>
+<div class="card">
+<h2>寫法小規則</h2>
+<p class="hint">一行就是一項。用直線 <code>|</code> 分開欄位。<br>要變成<b style="color:var(--red)">紅色粗體</b>的字，前後加星號：<code>*限乘2位*</code>。網址會自動變成連結。<br>規定、注意事項裡，前面寫「小標題：」會自動變粗體，例如 <code>代幣：本方案可……</code><br><b>想要項目之間空一行，就在左邊多按一次 Enter 留一行空白。</b>左邊怎麼空，右邊就怎麼空。</p>
+</div>
+
+<div class="card">
+<h2>📁 分店範本</h2>
+<p class="hint" id="tplWhere">連線中…</p>
+<div class="row2"><input type="text" id="tplName" placeholder="範本名稱，例如：湯姆貝貝林口三井店"><button id="tplSave" disabled>儲存</button></div>
+<div class="row2"><select id="tplList"><option value="">（還沒有範本）</option></select><button id="tplLoad" disabled>載入</button><button id="tplDel" class="danger" disabled>刪除</button></div>
+<div class="bar" style="margin-top:10px"><button type="button" id="tplExport">⬇️ 匯出範本檔</button><button type="button" id="tplImport">⬆️ 匯入範本檔</button><input type="file" id="tplFile" accept=".json,application/json" hidden></div>
+<p class="ok" id="tplMsg" style="margin:8px 0 0"></p>
+</div>
+
+<div class="card">
+<h2>基本資料</h2>
+<label for="brand">樂園品牌（用在紅利點數說明）</label>
+<select id="brand"><option>奧斯丁夢想樂園</option><option>湯姆貝貝親子樂園</option><option>湯姆熊歡樂世界</option></select>
+<div class="row">
+<label for="size">內文大小</label>
+<select id="size" style="width:auto"><option value="14">14px（票券建議）</option><option value="15">15px</option><option value="16">16px</option></select>
+</div>
+</div>
+
+<div class="card">
+<h2>🎁 購買方案內容（彩色卡片）</h2>
+<p class="hint">格式：<code>圖示 | 名稱 | 紅色重點 | 小字說明</code>，一行一張卡片。<br><b>圖示可以不填</b>：寫 <code>名稱 | 紅色重點 | 小字說明</code> 就好，會照名稱自動配（例如「火車」→🚂、「代幣」→🪙）。<br>想換圖示：游標點在那一行，再按下面的「😀 選圖示」挑一個。</p>
+<textarea id="plan" rows="5"></textarea>
+<div class="bar" style="margin-top:8px"><button type="button" id="pickBtn" aria-expanded="false">😀 選圖示</button><span class="ok" id="pickMsg"></span></div>
+<div class="picker" id="picker" hidden></div>
+</div>
+
+<div class="card">
+<h2>💗 會員紅利點數（淺藍框）</h2>
+<div class="row"><label><input type="checkbox" id="pointsOn" checked> 這個商品要顯示紅利點數說明</label></div>
+<p class="hint"><code>{樂園}</code> 會自動換成上面選的品牌。</p>
+<textarea id="points" rows="9"></textarea>
+</div>
+
+<div class="card">
+<h2>📱 如何兌換使用（步驟卡片）</h2>
+<p class="hint">格式：<code>標題 | 小字說明</code>，一行一個步驟，會自動編 1 2 3。</p>
+<textarea id="steps" rows="4"></textarea>
+<label for="stepNote">步驟下方的紅字提醒</label>
+<input type="text" id="stepNote">
+</div>
+
+<div class="card">
+<h2>⚠️ 兌換規定（淺紅框）</h2>
+<textarea id="rules" rows="10"></textarea>
+</div>
+
+<div class="card">
+<h2>🎡 樂園注意事項（淺黃框）</h2>
+<textarea id="notice" rows="12"></textarea>
+</div>
+
+<div class="card">
+<h2>📲 本店專屬網頁（網頁 app）</h2>
+<p class="hint">填分店代碼，就會產生兩段：<b>①「樂園介紹」最上面的提醒框</b>（右邊第 3 個分頁），<b>②「本店資訊」裡的專屬網頁卡片</b>（自動放在地圖上面）。<br>代碼就是網頁 app 網址最後 <code>?store=</code> 後面的字，例如林口三井店是 <code>linkou</code>。空白就不產生。</p>
+<label for="sCode">分店代碼</label><input type="text" id="sCode" placeholder="例如：linkou" autocapitalize="off" autocomplete="off" spellcheck="false">
+<p class="hint" id="appUrl" style="margin:6px 0 0"></p>
+<label for="sWallet">我的票夾</label>
+<select id="sWallet"><option value="A">還沒上線（A 版：只介紹網頁好處）</option><option value="B">已經上線（B 版：提醒結帳時存到票夾）</option></select>
+<label for="sOption">結帳頁的選項名稱（B 版才會用到）</label><input type="text" id="sOption">
+</div>
+
+<div class="card">
+<h2>🏠 本店資訊（商品介紹欄位）</h2>
+<label for="sName">樂園名稱</label><input type="text" id="sName">
+<label for="sHours">營業時間</label><input type="text" id="sHours">
+<label for="sNote">紅字提醒（沒有就空白）</label><input type="text" id="sNote">
+<label for="sTel">連絡電話</label><input type="text" id="sTel">
+<label for="sLine">LINE@官方帳號網址</label><input type="text" id="sLine">
+<label for="sAddr">本店地址</label><input type="text" id="sAddr">
+<label for="sMap">Google 地圖嵌入碼（整段 &lt;iframe…&gt; 直接貼上）</label>
+<textarea id="sMap" rows="3" style="min-height:80px"></textarea>
+<p class="warn" id="mapWarn"></p>
+</div>
+
+<details class="card" id="layoutBox">
+<summary>✏️ 版型設定（標題文字、顏色）</summary>
+<p class="hint">平常不用動。想改區塊大標題或底色時，在這裡改，右邊會馬上變。<code>{樂園}</code> 會換成品牌名稱。</p>
+<label for="tPlan">購買方案的大標題</label><input type="text" id="tPlan">
+<label for="tPoints">紅利點數框的標題</label><input type="text" id="tPoints">
+<label for="tSteps">兌換步驟的大標題</label><input type="text" id="tSteps">
+<label for="tRules">兌換規定框的標題</label><input type="text" id="tRules">
+<label for="tNotice">注意事項框的標題</label><input type="text" id="tNotice">
+<label for="tStore">本店資訊的大標題</label><input type="text" id="tStore">
+<label for="tMap">地圖上方的文字</label><input type="text" id="tMap">
+<h3 class="sub">顏色（點色塊就能換）</h3>
+<div class="colors">
+<label><input type="color" id="cPlan1">方案卡片 1</label>
+<label><input type="color" id="cPlan2">方案卡片 2</label>
+<label><input type="color" id="cPlan3">方案卡片 3</label>
+<label><input type="color" id="cPoints">紅利點數框</label>
+<label><input type="color" id="cSteps">步驟卡片</label>
+<label><input type="color" id="cRules">兌換規定框</label>
+<label><input type="color" id="cNotice">注意事項框</label>
+<label><input type="color" id="cRed">重點紅字</label>
+</div>
+<div class="bar" style="margin-top:14px"><button id="layoutReset">版型還原成預設</button></div>
+</details>
+
+<div class="bar">
+<button id="reset">還原成範例</button>
+<button id="clear">全部清空（換新商品）</button>
+</div>
+</section>
+
+<section class="out">
+<div class="card">
+<div class="tabs" role="tablist">
+<button role="tab" id="t1" aria-selected="true">方案兌換說明<br><small>（兌換券內容欄）</small></button>
+<button role="tab" id="t2" aria-selected="false">本店資訊<br><small>（商品介紹欄）</small></button>
+<button role="tab" id="t3" aria-selected="false">提醒框<br><small>（樂園介紹欄最上面）</small></button>
+</div>
+<div class="prev ticket" id="prev"></div>
+<pre id="code"></pre>
+<div class="bar"><button class="pri" id="copy">複製程式碼</button><span class="ok" id="ok"></span></div>
+<p class="hint" style="margin-top:10px">預覽可以拉窄看手機效果。貼上後記得重新打開後台、切到原始碼確認內容還在。</p>
+</div>
+</section>
+</main>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+const LAYOUT={tPlan:"🎁 購買方案內容",tPoints:"💗 {樂園}〈會員紅利點數〉累積說明",tSteps:"📱 如何兌換使用",tRules:"⚠️ 兌換規定（購買前請詳細閱讀）",tNotice:"🎡 樂園注意事項（核銷票券前，請詳細閱讀）",tStore:"📍 本店資訊",tMap:"🗺️ 查看地圖：",
+cPlan1:"#fff4e0",cPlan2:"#fdecea",cPlan3:"#eaf4fb",cPoints:"#eaf4fb",cSteps:"#f5f5f5",cRules:"#fff0ee",cNotice:"#fff8e6",cRed:"#e74c3c"};
+const SAMPLE=Object.assign({},LAYOUT,{brand:"奧斯丁夢想樂園",size:"14",pointsOn:true,
+plan:`🪙 | 湯姆熊遊戲代幣 | 350元 | 限奧斯丁南港環球店櫃台兌換
+☕ | 奧斯丁咖啡餐飲 | 九折券 1張 | （贈品券）限單筆兌換使用，內用外帶適用，內用需購票入場遊玩
+🧇 | 雞蛋糕 | 兌換券 1張 | （贈品券）限外帶`,
+points:`商城並無提供{樂園}紅利點數累積功能。
+
+若顧客是{樂園}會員，持購買電子憑證至所購買樂園櫃台核銷前，向櫃台服務人員告知會員手機號碼或持實體會員卡片，即可協助將當天使用核銷票券金額（贈品券無法累積）累積至會員資料中，*紅利點數以100元1點計算。*
+
+若當天申辦會員卡，亦可享有紅利點數累積（辦理會員卡需出示大人證件以供櫃台人員核對身份）。
+
+欲查詢現有會員紅利點數，可點選以下連結並輸入會員資料進行查詢：[👉 點我查詢會員紅利點數](https://www.austinland.com.tw/Points/Auth/Login)`,
+steps:`📧 收到 Email | 訂單成立後，會收到通知信
+🎫 打開票夾，出示電子憑證 | 截圖、翻拍、列印無效
+✅ 至南港奧斯丁櫃台核銷 | 完成核銷即可使用`,
+stepNote:"※ 入場前，須遵守當店兌換規定及現場樂園公告的規範，不等於優先入場。",
+rules:`營業時間會異動：樂園因每月清潔日和顧客包場需求，營業時間會有異動，*建議前往樂園前，請先洽詢門市確認營業時間*，以免耽誤您寶貴時間。如遇不可抗力之因素（包含颱風、地震、豪雨等天災），依照當店門市營業時間為主。若有未盡事宜，本公司保留修改、終止、變更活動內容細節之權利。
+
+憑證限用一次：*一組電子憑證限兌換一次，不可重複使用，截圖轉傳、翻拍或列印無效。*因電子兌換憑證為不記名，任何人持有皆可兌換，請自行妥善保管；若遺失或造成被第三方兌換使用，所造成的損失須由消費者承擔，恕不補發。
+
+發票：購買此方案時已開立發票，於現場兌換時恕不再開立發票。
+
+退貨：如須退貨，請至原購買平台申請，申請前請參閱退貨須知。`,
+notice:`代幣：本方案可至奧斯丁南港環球店櫃台兌換湯姆熊350元代幣，*活動兌換之代幣僅限湯姆熊歡樂世界南港環球店使用。*
+
+雞蛋糕：雞蛋糕兌換券可至奧斯丁南港環球店櫃台兌換，僅限外帶使用。
+
+咖啡九折券：奧斯丁咖啡九折優惠券限單筆兌換使用，餐飲品項僅限現場菜單內容為主，內用／外帶適用。*（購票入場至奧斯丁咖啡消費方可使用）*
+
+🚫 禁止攜帶外食及飲料入場。
+
+停車與合併優惠：此方案恕無法折抵百貨商場之停車優惠，不得與現場其他活動及優惠合併使用。
+
+本樂園保有解釋、修正及終止本活動之權力，未盡事宜以園內公告或官網為主。`,
+sName:"奧斯丁夢想樂園南港環球店",sHours:"11：00 – 21：30（最後離場時間 20：30）",
+sNote:"本店會因每月清潔日和顧客包場造成開放時間有異動，來店前，建議先來電確認，以免耽誤您寶貴的時間。",
+sTel:"(02)2788-8506",sLine:"https://lin.ee/kndlXDh",sAddr:"115台北市南港區忠孝東路七段371號B1AF（南港車站南港環球購物中心）",
+sMap:`<iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3614.443566794763!2d121.60458687483282!3d25.052950837529135!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3442ab007ecae9cd%3A0x349e35c924dbae1!2z5aWn5pav5LiB5aSi5oOz5qiC5ZySLeWNl-a4r-eSsOeQg-W6lw!5e0!3m2!1szh-TW!2stw!4v1795485706130!5m2!1szh-TW!2stw" width="400" height="300"></iframe>`});
+const LKEYS=Object.keys(LAYOUT);
+const TEXT=["sCode","sOption","plan","points","steps","stepNote","rules","notice","sName","sHours","sNote","sTel","sLine","sAddr","sMap"].concat(LKEYS),SEL=["brand","size","sWallet"],CHK=["pointsOn"];
+const KEY="twanga-converter-v3",OLDKEY="twanga-converter-v2";let tab=1;
+function load(d){d=Object.assign({},LAYOUT,{sWallet:"A",sOption:"存到我的票夾＋Email"},d);TEXT.concat(SEL).forEach(k=>{$(k).value=d[k]??""});CHK.forEach(k=>{$(k).checked=d[k]!==false})}
+function state(){const d={};TEXT.concat(SEL).forEach(k=>d[k]=$(k).value);CHK.forEach(k=>d[k]=$(k).checked);return d}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(state()))}catch(e){}}
+const V=k=>$(k).value;
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const R=t=>`<span style="color:${V("cRed")}"><strong>${t}</strong></span>`;
+function fmt(s){let h=esc(s.trim());const links=[];
+ h=h.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,(m,t,u)=>{links.push(`<a href="${u}" target="_blank"><strong>${t}</strong></a>`);return`\u0000${links.length-1}\u0000`});
+ h=h.replace(/\*([^*]+)\*/g,(m,t)=>R(t));
+ h=h.replace(/https?:\/\/[^\s<&，。）)\u0000]+/g,u=>`<a href="${u}" target="_blank">${u}</a>`);
+ return h.replace(/\u0000(\d+)\u0000/g,(m,i)=>links[i]);}
+const ICON_RULES=[[/火車/,"🚂"],[/代幣/,"🪙"],[/彩票/,"🎟️"],[/咖啡/,"☕"],[/雞蛋糕|鬆餅/,"🧇"],[/冰淇淋|霜淇淋/,"🍦"],[/爆米花/,"🍿"],[/飲料|飲品|果汁/,"🥤"],[/套餐|漢堡|餐點|輕食/,"🍔"],[/兒童|孩童|小孩|童票/,"🧒"],[/嬰|寶寶|幼兒/,"👶"],[/親子|家庭/,"👨‍👩‍👧"],[/成人|大人|家長/,"🧑"],[/電玩|遊戲機|機台/,"🎮"],[/拍照|攝影|大頭貼/,"📸"],[/娃娃|玩偶|公仔/,"🧸"],[/停車/,"🅿️"],[/折|優惠券|折價/,"🏷️"],[/入場|門票|小時|時間|暢玩/,"🕑"],[/贈品|禮/,"🎁"]];
+const autoIcon=name=>{const t=String(name||"");for(const [re,ic] of ICON_RULES)if(re.test(t))return ic;return"🎁"};
+const hasIcon=t=>/\p{Extended_Pictographic}/u.test(t||"");
+function planCols(l){let c=cols(l);if(c.length<4&&!hasIcon(c[0]))c=["",...c];if(!c[0]||!c[0].trim())c[0]=autoIcon(c[1]);return c}
+const lines=s=>s.split(/\n/).map(x=>x.trim()).filter(Boolean);
+const cols=l=>l.split(/\s*[|｜]\s*/);
+const sz=()=>V("size");
+const brandT=t=>esc(t.split("{樂園}").join(V("brand")));
+const H=t=>`<p style="text-align:center"><span style="font-size:20px">${R(brandT(t))}</span></p>`;
+const TB=(pad,sp,rows)=>`<table border="0" cellpadding="${pad}" cellspacing="${sp}" style="width:100%">\n\t<tbody>\n${rows}\t</tbody>\n</table>`;
+function iconRow(bg,icon,title,big,note){
+ return `\t\t<tr>\n\t\t\t<td style="background-color:${bg}; text-align:center; vertical-align:middle; width:56px"><span style="font-size:28px">${icon}</span></td>\n\t\t\t<td style="background-color:${bg}; vertical-align:middle"><span style="font-size:${+sz()+2}px"><strong>${title}</strong>${big?"　"+R(big):""}</span>${note?`<br />\n\t\t\t<span style="font-size:${sz()}px">${note}</span>`:""}</td>\n\t\t</tr>\n`;}
+/* 色塊框：左邊每一行 = 右邊一行；左邊的空白行 = 右邊的空白行 */
+function box(bg,title,body){
+ const raw=body.split(/\n/).map(x=>x.trim());
+ while(raw.length&&!raw[0])raw.shift();while(raw.length&&!raw[raw.length-1])raw.pop();
+ let n=0;const items=raw.map(l=>{if(!l)return"";n++;const num=String(n).padStart(2,"0")+".";let t=fmt(l);const m=t.match(/^([^：<]{1,10})：/);if(m)t=`<strong>${m[1]}：</strong>`+t.slice(m[0].length);return`<strong>${num}</strong> ${t}`}).join("<br />\n\t\t\t");
+ return TB(16,0,`\t\t<tr>\n\t\t\t<td style="background-color:${bg}; vertical-align:top"><span style="font-size:18px">${R(brandT(title))}</span><br />\n\t\t\t<br />\n\t\t\t<span style="font-size:${sz()}px">${items}</span></td>\n\t\t</tr>\n`);}
+const GAP="\n\n<p>&nbsp;</p>\n\n";
+function genA(){const out=[];const br=V("brand");const PAL=[V("cPlan1"),V("cPlan2"),V("cPlan3")];
+ const plan=lines(V("plan"));
+ if(plan.length)out.push(H(V("tPlan"))+"\n\n"+TB(12,6,plan.map((l,i)=>{const c=planCols(l);return iconRow(PAL[i%PAL.length],esc(c[0]),fmt(c[1]||""),fmt(c[2]||""),fmt(c[3]||""))}).join("")));
+ if($("pointsOn").checked&&lines(V("points")).length)out.push(box(V("cPoints"),V("tPoints"),V("points").split("{樂園}").join(br)));
+ const st=lines(V("steps"));
+ if(st.length){const nums=["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣"];let s=H(V("tSteps"))+"\n\n"+TB(12,6,st.map((l,i)=>{const c=cols(l);return iconRow(V("cSteps"),nums[i]||String(i+1),fmt(c[0]||""),"",fmt(c[1]||""))}).join(""));
+  if(V("stepNote").trim())s+=`\n\n<p style="text-align:center"><span style="font-size:${sz()}px">${R(esc(V("stepNote").trim()))}</span></p>`;out.push(s)}
+ if(lines(V("rules")).length)out.push(box(V("cRules"),V("tRules"),V("rules")));
+ if(lines(V("notice")).length)out.push(box(V("cNotice"),V("tNotice"),V("notice")));
+ return out.join(GAP);}
+function mapSrc(){const v=V("sMap").trim();if(!v){$("mapWarn").textContent="";return""}
+ const m=v.match(/src="([^"]+)"/);const src=m?m[1]:v;
+ if(!/^https:\/\/www\.google\.com\/maps\/embed/.test(src)){$("mapWarn").textContent="這看起來不是 Google 地圖的「嵌入地圖」碼。請在 Google 地圖按「分享」→「嵌入地圖」→「複製 HTML」。";return""}
+ $("mapWarn").textContent="";return src;}
+function genB(){const rows=[["🏠","樂園名稱","sName"],["🕐","營業時間","sHours"],["📞","連絡電話","sTel"],["💬","LINE@官方帳號","sLine"],["📍","本店地址","sAddr"]].filter(r=>V(r[2]).trim());
+ const body=rows.map((r,i)=>{let note=fmt(V(r[2]));if(r[2]==="sHours"&&V("sNote").trim())note+=`<br />\n\t\t\t${R(esc(V("sNote").trim()))}`;
+  return iconRow(i%2?"#ffffff":"#fff8e6",r[0],r[1],"",note)}).join("");
+ let h=rows.length?H(V("tStore"))+"\n\n"+TB(12,4,body):"";const ac=appCard();if(ac)h+=(h?GAP:"")+ac;const src=mapSrc();
+ if(src)h+=`\n\n<p><span style="font-size:${+sz()+2}px"><strong>${brandT(V("tMap"))}</strong></span></p>\n\n<p><embed src="${esc(src)}" type="text/html" width="100%" height="300" /></p>`;
+ return h;}
+const appCode=()=>V("sCode").trim().replace(/[^A-Za-z0-9_-]/g,"");
+const appLink=()=>appCode()?"https://austin-toms.pages.dev/?store="+appCode():"";
+const isB=()=>V("sWallet")==="B";
+const L=(t)=>`<a href="${appLink()}" target="_blank"><strong>${t}</strong></a>`;
+function genC(){if(!appLink())return"";const s=sz();
+ const body=isB()
+  ?`<span style="font-size:18px"><strong>🎫 買完票，不用再翻 Email 找票！</strong></span><br />\n\t\t\t<span style="font-size:${s}px">結帳時在「取貨方式」選 ${R(esc(V("sOption").trim()||"存到我的票夾"))}，<br />\n\t\t\t當場註冊或登入會員就可以（不用先註冊）<br />\n\t\t\t之後打開本店專屬網頁 →「我的票夾」，點票券就能出示條碼</span><br />\n\t\t\t<span style="font-size:16px">${L("👉 點我開啟本店專屬網頁")}</span><br />\n\t\t\t<span style="font-size:12px">不想註冊也沒關係，票券一樣會寄到您的 Email（信裡點「點我開啟電子票券」）。</span>`
+  :`<span style="font-size:18px"><strong>📲 本店專屬網頁</strong></span><br />\n\t\t\t<span style="font-size:${s}px">營業時間、導航、會員紅利　一鍵查詢</span><br />\n\t\t\t<span style="font-size:16px">${L("👉 點我開啟（建議加到手機主畫面）")}</span>`;
+ return TB(12,0,`\t\t<tr>\n\t\t\t<td style="background-color:${V("cPlan1")}; text-align:center">${body}</td>\n\t\t</tr>\n`)+"\n\n<p>&nbsp;</p>";}
+function appCard(){if(!appLink())return"";const bg=V("cPlan3");
+ const rows=[["🕐","營業時間、導航、打電話","一鍵找到"],["💗","會員紅利、彩票查詢",""],["💬","LINE@ 官方帳號","最新優惠、線上客服"],isB()?["🎫","我的票夾","購買時登入會員，票券直接存進來，不用再翻 Email"]:["🎫","我的票夾（即將開放）","之後可在這裡查看已購買的票券"]];
+ return `<p><span style="font-size:18px"><strong>📲 本店專屬網頁（建議加到手機主畫面）</strong></span></p>\n\n`+TB(10,4,rows.map(r=>iconRow(bg,r[0],r[1],"",r[2])).join(""))+
+ `\n\n<p style="text-align:center"><span style="font-size:16px">${L("👉 點我開啟本店專屬網頁")}</span></p>\n\n<p><span style="font-size:${sz()}px"><strong>加到手機主畫面，下次一點就開：</strong><br />\niPhone：用 Safari 開啟 → 點下方「分享」→「加入主畫面」<br />\nAndroid：用 Chrome 開啟 → 點右上「⋮」→「加到主畫面」或「安裝應用程式」</span></p>`;}
+function render(){$("appUrl").textContent=appLink()?"網址："+appLink():"";const code=tab===1?genA():tab===2?genB():genC();
+ $("code").textContent=code||(tab===3?"（請先在左邊「📲 本店專屬網頁」填分店代碼）":"（還沒有內容）");
+ $("prev").innerHTML=code.replace(/<embed[^>]*>/g,'<div style="width:400px;max-width:100%;height:300px;background:#e8eef3;display:grid;place-items:center;color:#678;border-radius:4px">🗺️ Google 地圖（存檔後在前台顯示）</div>');
+ $("ok").textContent="";save();}
+document.querySelectorAll("section:first-child input:not(#tplName),section:first-child select:not(#tplList),section:first-child textarea").forEach(e=>e.addEventListener("input",render));
+function setTab(n){tab=n;[1,2,3].forEach(i=>$("t"+i).setAttribute("aria-selected",n===i));render()}
+$("t1").onclick=()=>setTab(1);$("t2").onclick=()=>setTab(2);$("t3").onclick=()=>setTab(3);
+$("copy").onclick=async()=>{const c=tab===1?genA():tab===2?genB():genC();try{await navigator.clipboard.writeText(c);$("ok").textContent="已複製 ✓"}catch(e){const r=document.createRange();r.selectNodeContents($("code"));const s=getSelection();s.removeAllRanges();s.addRange(r);$("ok").textContent="已選取，請按 Ctrl+C 複製"}};
+/* 兩段式確認（頁面內，不用跳出視窗） */
+function twoStep(btn,label,ask,fn){let armed=false,t;btn.textContent=label;btn.onclick=()=>{if(!armed){armed=true;btn.textContent=ask;clearTimeout(t);t=setTimeout(()=>{armed=false;btn.textContent=label},4000);return}armed=false;clearTimeout(t);btn.textContent=label;fn()}}
+const keepLayout=()=>{const d={};LKEYS.forEach(k=>d[k]=V(k));return d};
+twoStep($("reset"),"還原成範例","再按一次確認（目前內容會被取代）",()=>{load(SAMPLE);render()});
+twoStep($("clear"),"全部清空（換新商品）","再按一次確認清空",()=>{load(Object.assign(keepLayout(),{sCode:V("sCode"),sWallet:V("sWallet"),sOption:V("sOption"),brand:V("brand"),size:V("size"),pointsOn:true,points:SAMPLE.points,rules:SAMPLE.rules,stepNote:SAMPLE.stepNote,steps:"📧 收到 Email | 訂單成立後，會收到通知信\n🎫 打開票夾，出示電子憑證 | 截圖、翻拍、列印無效\n✅ 至櫃台核銷 | 完成核銷即可使用"}));render()});
+$("layoutReset").onclick=()=>{LKEYS.forEach(k=>$(k).value=LAYOUT[k]);render()};
+
+/* ===== 選圖示：把游標所在那一行的圖示換掉 ===== */
+const ICON_SET=[["入場、時間",["🕑","⏰","🎟️","🎫","🎪"]],["兒童、大人、家庭",["🧒","👶","🧑","👨‍👩‍👧","👪"]],["遊樂設施",["🚂","🎠","🎡","🤸","🎯","🎮","🏀","⚽","🛷"]],["代幣、金額、優惠",["🪙","💰","💵","🏷️","🎰"]],["贈品",["🎁","🎀","🧸","🏅"]],["飲食",["☕","🧇","🍦","🥤","🍿","🍔","🍰"]],["其他",["📸","🅿️","🎂","⭐","❤️","✨"]]];
+const pk=$("picker");
+ICON_SET.forEach(([g,list])=>{const h=document.createElement("h4");h.textContent=g;pk.append(h);list.forEach(ic=>{const b=document.createElement("button");b.type="button";b.textContent=ic;b.setAttribute("aria-label","使用圖示 "+ic);b.onclick=()=>putIcon(ic);pk.append(b)})});
+$("pickBtn").onclick=()=>{pk.hidden=!pk.hidden;$("pickBtn").setAttribute("aria-expanded",String(!pk.hidden))};
+function putIcon(ic){const ta=$("plan"),v=ta.value,pos=ta.selectionStart??v.length;
+ const a=v.lastIndexOf("\n",pos-1)+1;let b=v.indexOf("\n",pos);if(b<0)b=v.length;
+ const line=v.slice(a,b);let c=line.trim()?cols(line.trim()):[];
+ if(!c.length)c=[ic,""];else if(c.length>=4||hasIcon(c[0]))c[0]=ic;else c=[ic,...c];
+ const nl=c.join(" | ");ta.value=v.slice(0,a)+nl+v.slice(b);
+ const caret=a+nl.length;ta.focus();ta.setSelectionRange(caret,caret);
+ $("pickMsg").textContent=`已換成 ${ic}`;render();}
+
+/* 讀取上次的內容；舊版資料自動在項目之間補一行空白，讓左右一致 */
+let saved=null;try{saved=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+if(!saved){try{const old=JSON.parse(localStorage.getItem(OLDKEY));if(old){["points","rules","notice"].forEach(k=>{if(old[k])old[k]=lines(old[k]).join("\n\n")});saved=old}}catch(e){}}
+load(saved||SAMPLE);render();
+
+/* ===== 分店範本：存在帳號（換裝置也看得到），不行時存在這台瀏覽器 ===== */
+const LSK="twanga-templates";
+const lsStore={kind:"local",
+ async list(){try{return JSON.parse(localStorage.getItem(LSK))||[]}catch(e){return[]}},
+ async save(id,o){const a=(await this.list()).filter(x=>x.id!==id);a.push(Object.assign({id},o));localStorage.setItem(LSK,JSON.stringify(a))},
+ async del(id){localStorage.setItem(LSK,JSON.stringify((await this.list()).filter(x=>x.id!==id)))}};
+let store=null,tpls=[];
+const msg=t=>{$("tplMsg").textContent=t};
+async function refreshTpl(sel){
+ try{tpls=(await store.list()).filter(x=>x&&x.name).sort((a,b)=>String(a.name).localeCompare(String(b.name),"zh-Hant"))}catch(e){tpls=[];msg("讀取範本失敗，請重新整理頁面再試。")}
+ const s=$("tplList");s.textContent="";
+ if(!tpls.length){const o=document.createElement("option");o.value="";o.textContent="（還沒有範本）";s.append(o)}
+ tpls.forEach(t=>{const o=document.createElement("option");o.value=t.id;o.textContent=t.name;s.append(o)});
+ if(sel)s.value=sel;
+ $("tplLoad").disabled=$("tplDel").disabled=!tpls.length;}
+$("tplSave").onclick=async()=>{const name=$("tplName").value.trim();if(!name){msg("請先在上面輸入範本名稱。");$("tplName").focus();return}
+ const same=tpls.find(t=>t.name===name);const id=same?same.id:"t"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+ $("tplSave").disabled=true;
+ try{await store.save(id,{name,data:JSON.stringify(state()),updated:Date.now()});await refreshTpl(id);msg(same?`已更新範本「${name}」✓`:`已儲存範本「${name}」✓`)}catch(e){msg("儲存失敗，請稍後再試。")}
+ $("tplSave").disabled=false;};
+twoStep($("tplLoad"),"載入","再按一次載入",()=>{const t=tpls.find(x=>x.id===$("tplList").value);if(!t)return;
+ try{load(JSON.parse(t.data));render();$("tplName").value=t.name;msg(`已載入「${t.name}」✓`)}catch(e){msg("這個範本讀不出來。")}});
+twoStep($("tplDel"),"刪除","確定刪除？",async()=>{const t=tpls.find(x=>x.id===$("tplList").value);if(!t)return;
+ try{await store.del(t.id);await refreshTpl();msg(`已刪除「${t.name}」`)}catch(e){msg("刪除失敗，請稍後再試。")}});
+$("tplList").onchange=()=>{const t=tpls.find(x=>x.id===$("tplList").value);if(t)$("tplName").value=t.name};
+
+store=lsStore;
+$("tplWhere").innerHTML="把整份內容（含版型設定）存成一個分店範本。範本存在<b>這台裝置的瀏覽器</b>裡；換電腦或平板時，先按「匯出範本檔」，再到另一台按「匯入範本檔」。";
+$("tplSave").disabled=false;refreshTpl();
+/* 匯出：下載一個 .json 檔；匯入：同名範本會被更新，其他的保留 */
+$("tplExport").onclick=async()=>{const a=await store.list();if(!a.length){msg("還沒有範本可以匯出。");return}
+ const d=new Date(),p=n=>String(n).padStart(2,"0");
+ const blob=new Blob([JSON.stringify({app:"twanga-generator",version:1,exported:d.toISOString(),templates:a},null,1)],{type:"application/json"});
+ const url=URL.createObjectURL(blob),el=document.createElement("a");el.href=url;el.download=`store-templates-${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.json`;document.body.append(el);el.click();setTimeout(()=>{el.remove();URL.revokeObjectURL(url)},2000);
+ msg(`已匯出 ${a.length} 個範本 ✓（檔案在「下載」資料夾）`)};
+$("tplImport").onclick=()=>$("tplFile").click();
+$("tplFile").onchange=async e=>{const f=e.target.files[0];e.target.value="";if(!f)return;
+ try{const j=JSON.parse(await f.text());const list=Array.isArray(j)?j:j.templates;if(!Array.isArray(list))throw 0;
+  let n=0;for(const t of list){if(!t||!t.name||typeof t.data!=="string")continue;const same=tpls.find(x=>x.name===t.name);
+   await store.save(same?same.id:(t.id||"t"+Date.now().toString(36)+n),{name:t.name,data:t.data,updated:t.updated||Date.now()});n++;await refreshTpl()}
+  msg(n?`已匯入 ${n} 個範本 ✓`:"這個檔案裡沒有範本。")}catch(err){msg("這個檔案讀不出來，請選「匯出範本檔」產生的 .json 檔。")}};
+if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
